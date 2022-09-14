@@ -3,6 +3,7 @@ from genericpath import isfile
 import sys
 import argparse
 import os
+import re
 import yaml
 from datetime import datetime
 from datetime import timedelta
@@ -100,10 +101,8 @@ class SecondBrain():
         log.error("No previous daily in the last 64 days")
         sys.exit(1)
 
-    def lastdaily(self):
-        self.daily()
-        if not os.path.isfile(self._target):
-            self.prevdaily()
+    def nextdaily(self):
+        self._target = self._daily_path(offset=-1)
 
     def view_md(self):
         if not os.path.isfile(self._target):
@@ -151,9 +150,11 @@ class SecondBrain():
 
     def find(self, pattern):
         l = self.list()
+        query = re.compile(pattern)
+
         did_match = False
         for e in l:
-            if e.find(pattern) != -1:
+            if query.search(e):
                 if not did_match:
                     log.warning("Matched {}".format(e))
                     self._target = self.config.location + "/" + e
@@ -193,16 +194,16 @@ def run():
 
 
     parser.add_argument('-d', "--daily",  action='store_true', help="Target daily note")
-    parser.add_argument('-L', "--lastdaily",  action='store_true', help="Target last daily note")
     parser.add_argument('-p', "--prevdaily",  action='store_true', help="Target previous daily note")
+    parser.add_argument('-n', "--nextdaily",  action='store_true', help="Target next daily note")
+
     parser.add_argument('-o', "--open", help="Target existing node")
 
     parser.add_argument('-l', "--list",  action='store_true', help="List notes")
-
+    parser.add_argument('-f', "--find", type=str, help="Open file matching pattern")
 
     parser.add_argument('-e', "--edit",  action='store_true', help="Open target for eddition")
     parser.add_argument('-v', "--view",  action='store_true', default=True, help="View target content (default)")
-    parser.add_argument('-f', "--find", type=str, help="Open file containing pattern")
 
 
     if len(sys.argv) == 1:
@@ -223,11 +224,10 @@ def run():
         br.open(args.open)
     elif args.daily:
         br.daily()
-    elif args.lastdaily:
-        br.lastdaily()
     elif args.prevdaily:
         br.prevdaily()
-
+    elif args.nextdaily:
+        br.nextdaily()
 
 
     if args.edit:

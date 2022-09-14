@@ -37,7 +37,7 @@ Show daily note:
 
         sb -d
 
-Edit daily node (uses `$EDITOR` or by default `vim):
+Edit daily node (uses `$EDITOR` or by default `vim`):
 
         sb -de
 
