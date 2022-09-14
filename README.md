@@ -5,7 +5,7 @@ This is a helper to redact and maintain Second Brain notes from the Command Line
 ## Install
 
 ```
-git clone git@github.com:besnardjb/sbr.git
+git clone https://github.com/besnardjb/sbr.git
 cd ./sbr/
 pip install --user .
 ```
