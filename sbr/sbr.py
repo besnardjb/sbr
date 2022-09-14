@@ -53,6 +53,7 @@ class Config():
 
             with open(self.conf_file, 'w') as f:
                 f.write(yaml.dump( self.config) )
+            log.info("Created config file in {}".format(self.conf_file))
 
     @property
     def daily(self):

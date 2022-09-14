@@ -12,7 +12,7 @@ setuptools.setup(
     packages=["sbr"],
     install_requires=[
         'rich',
-        'argcomplete'
+        'pyyaml'
     ],
     python_requires='>=3.5'
 )
