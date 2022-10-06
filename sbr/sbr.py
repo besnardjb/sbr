@@ -64,7 +64,10 @@ class Config():
     def location(self):
         return os.path.expanduser(self.config["brain_location"])
 
-
+def show_md(data):
+    console = Console()
+    md = Markdown(data)
+    console.print(md)
 
 
 class SecondBrain():
@@ -76,6 +79,9 @@ class SecondBrain():
         self._target = None
 
         self.daily()
+
+    def target(self):
+        return self._target
 
     def _daily_path(self, offset=0):
         now = datetime.now()
@@ -113,9 +119,7 @@ class SecondBrain():
             sys.exit(1)
         with open(self._target, 'r') as f:
             data = f.read()
-            console = Console()
-            md = Markdown(data)
-            console.print(md)
+            show_md(data)
 
     def _get_template(self):
         target = self._target
@@ -155,17 +159,19 @@ class SecondBrain():
         l = self.list()
         query = re.compile(pattern)
 
+        matches = []
+
         did_match = False
         for e in l:
             if query.search(e):
                 if not did_match:
-                    log.warning("Matched {}".format(e))
+                    # We keep the first as target
                     self._target = self.config.location + "/" + e
                     did_match = True
-                else:
-                    log.info("Could have matched {}".format(e))
+                # Save others in ret for grep
+                matches.append(e)
         if did_match:
-            return
+            return matches
         log.error("No file matches {}".format(pattern))
         sys.exit(1)
 
@@ -185,6 +191,10 @@ br = SecondBrain()
 def complete_prefix(prefix, parsed_args, **kwargs):
     print(prefix)
 
+def list_md(title, l):
+    add = "\n".join([ "- {}".format(x) for x in l])
+    out = "# {}\n{}".format(title, add)
+    show_md(out)
 
 def run():
 
@@ -204,10 +214,9 @@ def run():
 
     parser.add_argument('-l', "--list",  action='store_true', help="List notes")
     parser.add_argument('-f', "--find", type=str, help="Open file matching pattern")
-
+    parser.add_argument('-g', "--grep", type=str, help="List files matching a pattern")
     parser.add_argument('-e', "--edit",  action='store_true', help="Open target for eddition")
     parser.add_argument('-v', "--view",  action='store_true', default=True, help="View target content (default)")
-
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -215,14 +224,17 @@ def run():
 
     args = parser.parse_args(sys.argv[1:])
 
-
     if args.list:
         console = Console()
-        console.print(br.list())
+        list_md("List of Notes", br.list())
         sys.exit(0)
-
+    if args.grep:
+        l = br.find(args.grep)
+        list_md("Matches '{}'".format(args.grep), l)
+        sys.exit(0)
     if args.find:
         br.find(args.find)
+        log.info("Matched {}".format(br.target()))
     elif args.open:
         br.open(args.open)
     elif args.daily:
