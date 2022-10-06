@@ -82,11 +82,14 @@ class SecondBrain():
         if offset:
             now = now - timedelta(days=offset)
 
-        inner = now.strftime(self.config.daily + ".md")
+        inner = os.path.join(
+                    self.config.location,
+                    now.strftime(self.config.daily + ".md")
+                )
         # Make sure inner exists
         d = os.path.dirname(inner)
         check_dir(d)
-        return self.config.location + "/" + inner
+        return inner
 
     def daily(self, offset=0):
         self._target = self._daily_path()
