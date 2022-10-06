@@ -88,22 +88,52 @@ class SecondBrain():
         if offset:
             now = now - timedelta(days=offset)
 
-        inner = os.path.join(
+        local = now.strftime(self.config.daily + ".md")
+        fullpath = os.path.join(
                     self.config.location,
-                    now.strftime(self.config.daily + ".md")
+                    local
                 )
         # Make sure inner exists
-        d = os.path.dirname(inner)
+        d = os.path.dirname(fullpath)
         check_dir(d)
-        return inner
+        return fullpath, local
 
     def daily(self, offset=0):
-        self._target = self._daily_path()
+        self._target, _ = self._daily_path()
 
+    def _load_task(self, path, inner, pending=True):
+        ret = []
+        with open(path, "r") as f:
+            data = f.read()
+            lines = data.split("\n")
+            if pending:
+                query = re.compile("^[\*-] \[\s\].*$")
+            else:
+                query = re.compile("^[\*-] \[x\].*$")
+            for l in lines:
+                if query.search(l):
+                    ret.append([path, inner, l])
+        return ret
+
+    def list_tasks(self, max_range=360, pending=True):
+        ptask = []
+        for i in range(0, max_range):
+            path, inner = self._daily_path(offset=i)
+            if os.path.isfile(path):
+                r = self._load_task(path, inner, pending)
+                if r:
+                    ptask = ptask + r
+        return ptask
+
+    def pending_tasks(self):
+        pending = set( [x[2] for x in  br.list_tasks() ] )
+        done = set( [x[2] for x in  br.list_tasks(pending=False) ] )
+        left = pending - done
+        return left
 
     def prevdaily(self):
         for i in range(1,64):
-            daily = self._daily_path(offset=i)
+            daily, _ = self._daily_path(offset=i)
             if os.path.isfile(daily):
                 self._target = daily
                 return
@@ -111,7 +141,7 @@ class SecondBrain():
         sys.exit(1)
 
     def nextdaily(self):
-        self._target = self._daily_path(offset=-1)
+        self._target, _ = self._daily_path(offset=-1)
 
     def view_md(self):
         if not os.path.isfile(self._target):
@@ -120,6 +150,15 @@ class SecondBrain():
         with open(self._target, 'r') as f:
             data = f.read()
             show_md(data)
+
+    def _cpy_with_task_list(self, path_to_template, target):
+        pending_list = left = "\n".join(br.pending_tasks())
+        with open(path_to_template, "r") as f:
+            content = f.read()
+            content = content.replace("%tasks%", pending_list)
+            with open(target, "w") as d:
+                d.write(content)
+
 
     def _get_template(self):
         target = self._target
@@ -133,7 +172,7 @@ class SecondBrain():
             t = p + "/Template.md"
             if os.path.isfile(t):
                 check_dir(startdir)
-                shutil.copyfile(t, target)
+                self._cpy_with_task_list(t, target)
                 return
             p = os.path.dirname(p)
 
@@ -207,15 +246,15 @@ def run():
 
 
     parser.add_argument('-d', "--daily",  action='store_true', help="Target daily note")
-    parser.add_argument('-p', "--prevdaily",  action='store_true', help="Target previous daily note")
-    parser.add_argument('-n', "--nextdaily",  action='store_true', help="Target next daily note")
-
-    parser.add_argument('-o', "--open", help="Target existing node")
-
-    parser.add_argument('-l', "--list",  action='store_true', help="List notes")
+    parser.add_argument('-e', "--edit",  action='store_true', help="Open target for eddition")
     parser.add_argument('-f', "--find", type=str, help="Open file matching pattern")
     parser.add_argument('-g', "--grep", type=str, help="List files matching a pattern")
-    parser.add_argument('-e', "--edit",  action='store_true', help="Open target for eddition")
+    parser.add_argument('-l', "--list",  action='store_true', help="List notes")
+    parser.add_argument('-n', "--nextdaily",  action='store_true', help="Target next daily note")
+    parser.add_argument('-o', "--open", help="Target existing node")
+    parser.add_argument('-p', "--prevdaily",  action='store_true', help="Target previous daily note")
+    parser.add_argument('-t', "--tasks", action='store_true', help="List unchecked items in daily notes (last 360 days)")
+    parser.add_argument('-T', "--alltasks", action='store_true', help="List all items in daily notes with their locations (last 360 days)")
     parser.add_argument('-v', "--view",  action='store_true', default=True, help="View target content (default)")
 
     if len(sys.argv) == 1:
@@ -243,6 +282,16 @@ def run():
         br.prevdaily()
     elif args.nextdaily:
         br.nextdaily()
+    elif args.alltasks:
+        allt = br.list_tasks(pending=False) + br.list_tasks() 
+        ll = [ "{} in **{}**".format(x[2], x[1]) for x in allt]
+        ll = ["# All tasks"] + ll
+        show_md("\n".join(ll))
+        sys.exit(0)
+    elif args.tasks:
+        left = br.pending_tasks()
+        show_md("# Pending Tasks\n" + "\n".join(left))
+        sys.exit(0)
 
 
     if args.edit:
