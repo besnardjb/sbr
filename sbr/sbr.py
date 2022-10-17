@@ -126,8 +126,8 @@ class SecondBrain():
         return ptask
 
     def pending_tasks(self):
-        pending = set( [x[2] for x in  br.list_tasks() ] )
-        done = set( [x[2] for x in  br.list_tasks(pending=False) ] )
+        pending = set( [x[2][5:] for x in  br.list_tasks() ] )
+        done = set( [x[2][5:] for x in  br.list_tasks(pending=False) ] )
         left = pending - done
         return left
 
@@ -290,7 +290,7 @@ def run():
         sys.exit(0)
     elif args.tasks:
         left = br.pending_tasks()
-        show_md("# Pending Tasks\n" + "\n".join(left))
+        show_md("# Pending Tasks\n" + "\n".join([ "* [ ] {}".format(x) for x in left]))
         sys.exit(0)
 
 
