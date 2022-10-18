@@ -152,7 +152,7 @@ class SecondBrain():
             show_md(data)
 
     def _cpy_with_task_list(self, path_to_template, target):
-        pending_list = left = "\n".join(br.pending_tasks())
+        pending_list = left = "\n".join([ "* [ ] {}".format(x) for x in br.pending_tasks()])
         with open(path_to_template, "r") as f:
             content = f.read()
             content = content.replace("%tasks%", pending_list)
