@@ -126,8 +126,8 @@ class SecondBrain():
         return ptask
 
     def pending_tasks(self):
-        pending = set( [x[2][5:] for x in  br.list_tasks() ] )
-        done = set( [x[2][5:] for x in  br.list_tasks(pending=False) ] )
+        pending = set( [x[2][6:].strip() for x in  br.list_tasks() ] )
+        done = set( [x[2][6:].strip() for x in  br.list_tasks(pending=False) ] )
         left = pending - done
         return left
 
