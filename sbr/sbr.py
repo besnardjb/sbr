@@ -151,8 +151,98 @@ class SecondBrain():
             data = f.read()
             show_md(data)
 
+    def __gather_by_tag_in_list(self, entry_list, skip=None):
+        tags = {}
+        groups = {}
+
+        for e in entry_list:
+            m = re.findall("#([^\s]+)", e)
+            if m:
+                for g in m:
+                    if g == skip:
+                        continue
+                    if g in tags:
+                        tags[g] = tags[g] + 1
+                        groups[g].append(e)
+                    else:
+                        tags[g] = 1
+                        groups[g] = [e]
+
+        return [ x[0] for x in sorted(tags.items(), key=lambda x: x[1], reverse=True) ], groups
+
+    def _gather_tasks_by_dominating_tag(self, tasks, skip=None):
+        task_set = set(tasks)
+
+        ret = {}
+        did_group = 0
+
+        while(True):
+
+            tsk, groups = self.__gather_by_tag_in_list(list(task_set), skip)
+
+            if len(tsk) == 0:
+                break
+
+            if tsk:
+                e = tsk[0]
+                group_task_set = set(groups[e])
+                task_set = task_set - group_task_set
+                ret[e] = groups[e]
+                did_group = 1
+
+
+        if not did_group:
+            return tasks
+
+        if len(task_set):
+            ret["_"] = list(task_set)
+
+        return ret
+
+    def _gen_task_nesting(self):
+        pdt = self.pending_tasks()
+
+        grp1 = self._gather_tasks_by_dominating_tag(pdt)
+
+        if isinstance(grp1, list):
+            return grp1
+
+
+
+        for k in [ x for x in grp1.keys() if x != "_"]:
+            grp1[k] = self._gather_tasks_by_dominating_tag(grp1[k], skip=k)
+
+        return grp1
+
+
+    def _task_nesting_md(self):
+        task_nesting = self._gen_task_nesting()
+
+        ret = ""
+
+        if "_" in task_nesting:
+            ret += "\n".join([ "* [ ] {}".format(x) for x in task_nesting["_"]])
+
+        for k in [ x for x in task_nesting.keys() if x != "_" ]:
+
+            ret += "\n\n## {}".format(k) + "\n\n"
+
+            if isinstance(task_nesting[k], list):
+                ret += "\n".join([ "* [ ] {}".format(x) for x in task_nesting[k]])
+                continue
+
+
+            if "_" in task_nesting[k]:
+                ret += "\n".join([ "* [ ] {}".format(x) for x in task_nesting[k]["_"]])
+
+            for kk in [ x for x in task_nesting[k].keys() if x != "_" ]:
+                ret += "\n\n### {}".format(kk) + "\n\n"
+                ret += "\n".join([ "* [ ] {}".format(x) for x in task_nesting[k][kk]])
+
+        return ret
+
     def _cpy_with_task_list(self, path_to_template, target):
-        pending_list = left = "\n".join([ "* [ ] {}".format(x) for x in br.pending_tasks()])
+        pending_list = self._task_nesting_md()
         with open(path_to_template, "r") as f:
             content = f.read()
             content = content.replace("%tasks%", pending_list)
@@ -283,14 +373,13 @@ def run():
     elif args.nextdaily:
         br.nextdaily()
     elif args.alltasks:
-        allt = br.list_tasks(pending=False) + br.list_tasks() 
+        allt = br.list_tasks(pending=False) + br.list_tasks()
         ll = [ "{} in **{}**".format(x[2], x[1]) for x in allt]
         ll = ["# All tasks"] + ll
         show_md("\n".join(ll))
         sys.exit(0)
     elif args.tasks:
-        left = br.pending_tasks()
-        show_md("# Pending Tasks\n" + "\n".join([ "* [ ] {}".format(x) for x in left]))
+        show_md("# Pending Tasks\n" + br._task_nesting_md())
         sys.exit(0)
 
 
