@@ -8,15 +8,7 @@ import yaml
 from datetime import datetime
 from datetime import timedelta
 import glob
-import logging
-from rich.logging import RichHandler
 
-FORMAT = "%(message)s"
-logging.basicConfig(
-    level="NOTSET", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
-)
-
-log = logging.getLogger("rich")
 
 from rich.console import Console
 from rich.markdown import Markdown
@@ -215,7 +207,6 @@ class SecondBrain():
         for l1_key in grp1.keys():
             if not isinstance(grp1[l1_key], list):
                 l2_keys = list(grp1[l1_key].keys())
-                print(l2_keys)
                 if len(l2_keys) == 1:
                     grp1[l1_key] = grp1[l1_key][l2_keys[0]]
 
