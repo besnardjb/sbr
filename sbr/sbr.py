@@ -10,7 +10,6 @@ from datetime import timedelta
 import glob
 import logging
 from rich.logging import RichHandler
-import shutil
 
 FORMAT = "%(message)s"
 logging.basicConfig(
@@ -212,11 +211,20 @@ class SecondBrain():
         for k in [ x for x in grp1.keys() if x != "_"]:
             grp1[k] = self._gather_tasks_by_dominating_tag(grp1[k], skip=k)
 
+        # If the first level contains only one element merge up
+        for l1_key in grp1.keys():
+            if not isinstance(grp1[l1_key], list):
+                l2_keys = list(grp1[l1_key].keys())
+                print(l2_keys)
+                if len(l2_keys) == 1:
+                    grp1[l1_key] = grp1[l1_key][l2_keys[0]]
+
         return grp1
 
 
     def _task_nesting_md(self):
         task_nesting = self._gen_task_nesting()
+
 
         ret = ""
 
