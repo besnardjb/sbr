@@ -182,10 +182,7 @@ class SecondBrain():
                 did_group = 1
 
 
-        if not did_group:
-            return tasks
-
-        if len(task_set):
+        if len(task_set) or not did_group:
             ret["_"] = list(task_set)
 
         return ret
@@ -198,7 +195,7 @@ class SecondBrain():
         if isinstance(grp1, list):
             return grp1
 
-
+        print(grp1)
 
         for k in [ x for x in grp1.keys() if x != "_"]:
             grp1[k] = self._gather_tasks_by_dominating_tag(grp1[k], skip=k)
